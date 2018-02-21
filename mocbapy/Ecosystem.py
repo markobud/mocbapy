@@ -7,7 +7,7 @@ Construct Ecosystem model
 """
 from numpy import zeros
 from scipy.sparse import lil_matrix, block_diag, eye
-from benpy import vlpProblem, vlpSolution, bensolve
+from benpy import vlpProblem
 from collections import OrderedDict
 from warnings import warn
 
@@ -101,17 +101,7 @@ class EcosystemModel:
         self.__init__(self.models.add(model), self.metabolic_dict)
 
     @staticmethod
-    def get_common_mets(model_list):
-        """Naive implementation of getting common exchange metabolites, using their id's"""
-        common_mets = dict()
-        for model in model_list:
-            for rxn_ex in model.exchanges:
-                for met_ex in rxn_ex.metabolites:
-                    if met_ex.id not in common_mets:
-                        common_mets[met_ex.id] = dict([(model, rxn_ex)])
-                    else:
-                        common_mets[met_ex.id][model] = rxn_ex
-        return (common_mets)
+
 
     def to_vlp(self):
         """Returns a vlp problem from EcosystemModel"""
@@ -145,9 +135,5 @@ class EcosystemModel:
         vlp.c = None
         return vlp
 
-    def mo_fba(self):
-        return bensolve(self.to_vlp())
 
-    def mo_fva(self, pf = None, alpha = 0.9):
-        pass
 

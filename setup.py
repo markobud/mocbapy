@@ -9,5 +9,6 @@ setup(
     url='https://gitlab.univ-nantes.fr/mbudinich/mocbapy',
     license='GPLv3',
     long_description='Multi Objective Constrait-Based Analysis in python',
+    packages = ['mocbapy'],
     platforms='linux, OSX',
 )
