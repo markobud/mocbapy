@@ -5,10 +5,11 @@ Created on Thu May  4 15:35:50 2017
 Construct Ecosystem model
 @author: mbudinich
 """
+from cobra.util.array import create_stoichiometric_matrix
 from numpy import zeros
 from scipy.sparse import lil_matrix, block_diag, eye
 from benpy import vlpProblem
-from collections import OrderedDict
+from collections import OrderedDict,defaultdict
 from warnings import warn
 
 
@@ -17,17 +18,14 @@ class EcosystemModel:
 
     def _construct_ecosystem_pool(self):
         """Check all metabolites used in import/export exchanges and construct the pool compartment"""
-        pooldict = dict()
+        pooldict = defaultdict(list)
         for model in self.models:
             for rxn_ex in model.exchanges:
                 for met_ex in rxn_ex.metabolites:
-                    if met_ex.id in self.metabolic_dict:
-                        met_name = self.metabolic_dict[met_ex.id]
-                        if met_name not in pooldict:
-                            pooldict[met_name] = [(model, rxn_ex, rxn_ex.get_coefficient(met_ex.id))]
-                        else:
-                            pooldict[met_name].append((model, rxn_ex, rxn_ex.get_coefficient(met_ex.id)))
-        self._pooldict = pooldict
+                    if (met_ex.id,model) in self.metabolic_dict:
+                        met_name = self.metabolic_dict[(met_ex.id,model)]
+                        pooldict[met_name].append((model, rxn_ex, rxn_ex.get_coefficient(met_ex.id)))
+        self._pooldict = dict(pooldict)
 
     def _populate_ecosystem_model(self):
         """Calculate the object attributes after pool construction"""
@@ -46,7 +44,7 @@ class EcosystemModel:
         self.ub = []
         self.objectives = OrderedDict()
         for model in self.models:
-            self.objectives[model.id] = []
+            self.objectives[model] = []
         for model in self.models:
             for r in model.reactions:
                 new_name = "{}:{}".format(r.id, model.id)
@@ -54,16 +52,19 @@ class EcosystemModel:
                 self.lb.append(r.lower_bound)
                 self.ub.append(r.upper_bound)
                 if r.objective_coefficient != 0:
-                    self.objectives[model.id].append((r.id, r.objective_coefficient))
+                    self.objectives[model].append((r.id, r.objective_coefficient))
             for m in model.metabolites:
                 self.sysmetabolites.append("{}:{}".format(m.id, model.id))
         self.sysreactions.extend(self.pool_ex_rxns)
         self.sysmetabolites.extend(self.pool_ex_mets)
         self.lb.extend(pool_lb)
         self.ub.extend(pool_ub)
-        array_form = [model.to_array_based_model() for model in self.models]
-        self.Ssigma = block_diag([model.S for model in array_form])
-        self.Ssigma = lil_matrix(block_diag([self.Ssigma, -eye(len(self.pool_ex_rxns))]))
+
+        array_form = block_diag( [create_stoichiometric_matrix(model, array_type="lil")
+                                  for model in self.models],
+                                 format="lil")
+
+        self.Ssigma = block_diag([array_form, -eye(len(self.pool_ex_rxns))], format="lil")
         for met in self._pooldict.keys():
             met_name = "{}:pool".format(met)
             met_idx = self.sysmetabolites.index(met_name)
@@ -73,9 +74,13 @@ class EcosystemModel:
                 self.Ssigma[met_idx, rxn_idx] = -coeff
 
     def __init__(self, model_array=None, metabolic_dict=None):
+
         """Instantiate the EcosystemModel object model_array is an array of cobra models to connect
-        metabolic_dict is a dictionary such as its keys correspond to metabolites id's and
-        their values to the name equivalence"""
+        metabolic_dict is a dictionary such as:
+            * Its keys correspond to tuples (metabolite_id,model)
+            * Its value correspond to the id that will be used in the model
+        """
+
         self.models = model_array
         self.metabolic_dict = metabolic_dict
         self._pooldict = None
@@ -100,9 +105,6 @@ class EcosystemModel:
         Pretty inefficient, re-runs all the steps again for each addition"""
         self.__init__(self.models.add(model), self.metabolic_dict)
 
-    @staticmethod
-
-
     def to_vlp(self):
         """Returns a vlp problem from EcosystemModel"""
         # We are using bensolve-2.0.1:
@@ -125,7 +127,7 @@ class EcosystemModel:
         vlp.P = lil_matrix((q, n))
         vlp.opt_dir = -1
         for i in range(q):
-            for rxn, coeff in self.objectives[self.models[i].id]:
+            for rxn, coeff in self.objectives[self.models[i]]:
                 new_name = "{}:{}".format(rxn, self.models[i].id)
                 k = self.sysreactions.index(new_name)
                 print((i, k))
