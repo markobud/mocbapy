@@ -16,6 +16,11 @@ from warnings import warn
 # %%
 class EcosystemModel:
 
+    @property
+    def bensolve_default_options(self):
+        """Returns bensolve default options"""
+        return vlpProblem().default_options
+
     def _construct_ecosystem_pool(self):
         """Check all metabolites used in import/export exchanges and construct the pool compartment"""
         pooldict = defaultdict(list)
@@ -105,7 +110,7 @@ class EcosystemModel:
         Pretty inefficient, re-runs all the steps again for each addition"""
         self.__init__(self.models.add(model), self.metabolic_dict)
 
-    def to_vlp(self):
+    def to_vlp(self,**kwargs):
         """Returns a vlp problem from EcosystemModel"""
         # We are using bensolve-2.0.1:
         # B is coefficient matrix
@@ -116,7 +121,7 @@ class EcosystemModel:
         # s is upper bounds of variables
         # opt_dir is direction: 1 min, -1 max
         # Y,Z and c are part of cone definition. If empty => MOLP
-        vlp = vlpProblem()
+        vlp = vlpProblem(**kwargs)
         m, n = self.Ssigma.shape
         q = len(self.models)
         vlp.B = self.Ssigma

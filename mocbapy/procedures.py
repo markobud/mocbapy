@@ -1,7 +1,23 @@
 from Ecosystem import EcosystemModel
 from collections import defaultdict
-from benpy import solve as bensolve
+from benpy import solve as bensolve, vlpSolution, vlpProblem
+from cobra.util import solver as list_solvers
+import optlang
+from warnings import warn
 
+
+def _choose_optlang_interfase(solver=None):
+    avail = [sol.lower() for sol, exist in optlang.available_solvers.iteritems() if exist]
+    if solver is None:
+        warn("Warning: No solver selected. Available solvers: {}".format(str(avail)))
+        if len(avail) == 0:
+            raise RuntimeError("No solvers available. Try to install glpk or scipy packages")
+        warn("Picking {} as solver".format(avail[0]))
+        solver = avail[0]
+    solver = solver.lower()
+    if solver not in avail:
+        raise RuntimeError("Solver \'{}\' not available. Available solvers: {}".format(solver, str(avail)))
+    return list_solvers.solvers[solver]
 
 def create_model(model_array=None, metabolic_dict=None):
     """Retunrs ans EcosystemModel from parameters"""
@@ -20,11 +36,23 @@ def get_common_mets(model_list):
     return dict(common_mets)
 
 
-def mo_fba(ecosystem_model):
+def mo_fba(ecosystem_model,**kwargs):
     """Solve the Ecosystem Model using bensolve procedure"""
-    return bensolve(ecosystem_model.to_vlp())
+    vlp_eco = ecosystem_model.to_vlp(**kwargs)
+    return bensolve(vlp_eco)
 
 
-def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9):
+def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9,solver=None):
     """Calculate the MO-FVA near the Pareto Front """
-    pass
+    interface = _choose_optlang_interfase(solver)
+    model = interface.Model(name='Dummy')
+    x1 = interface.Variable("x1", lb=0, ub=20)
+    x2 = interface.Variable("x2", lb=0, ub=10)
+    c1 = interface.Constraint(2 * x1 - x2, lb=0, ub=0)  # Equality constraint
+    model.add([x1, x2, c1])
+    model.objective = interface.Objective(x1 + x2, direction="max")
+    return model
+
+
+
+
