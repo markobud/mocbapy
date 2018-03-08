@@ -9,7 +9,7 @@ from cobra.util.array import create_stoichiometric_matrix
 from numpy import zeros
 from scipy.sparse import lil_matrix, block_diag, eye
 from benpy import vlpProblem
-from collections import OrderedDict,defaultdict
+from collections import OrderedDict, defaultdict
 from warnings import warn
 
 

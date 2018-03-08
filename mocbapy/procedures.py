@@ -4,7 +4,7 @@ from benpy import solve as bensolve, vlpSolution, vlpProblem
 from cobra.util import solver as list_solvers
 import optlang
 from warnings import warn
-
+from tqdm import tqdm
 
 def _choose_optlang_interfase(solver=None):
     avail = [sol.lower() for sol, exist in optlang.available_solvers.iteritems() if exist]
@@ -19,8 +19,10 @@ def _choose_optlang_interfase(solver=None):
         raise RuntimeError("Solver \'{}\' not available. Available solvers: {}".format(solver, str(avail)))
     return list_solvers.solvers[solver]
 
+
 def create_model(model_array=None, metabolic_dict=None):
-    """Retunrs ans EcosystemModel from parameters"""
+    """Returns ans EcosystemModel from parameters"""
+
     return EcosystemModel(model_array=model_array, metabolic_dict=metabolic_dict)
 
 
@@ -36,23 +38,33 @@ def get_common_mets(model_list):
     return dict(common_mets)
 
 
-def mo_fba(ecosystem_model,**kwargs):
+def mo_fba(ecosystem_model, **kwargs):
     """Solve the Ecosystem Model using bensolve procedure"""
     vlp_eco = ecosystem_model.to_vlp(**kwargs)
     return bensolve(vlp_eco)
 
 
-def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9,solver=None):
+def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None):
     """Calculate the MO-FVA near the Pareto Front """
-    interface = _choose_optlang_interfase(solver)
-    model = interface.Model(name='Dummy')
-    x1 = interface.Variable("x1", lb=0, ub=20)
-    x2 = interface.Variable("x2", lb=0, ub=10)
-    c1 = interface.Constraint(2 * x1 - x2, lb=0, ub=0)  # Equality constraint
-    model.add([x1, x2, c1])
-    model.objective = interface.Objective(x1 + x2, direction="max")
+    # x1 = interfase.Variable("x1", lb=0, ub=20)
+    # x2 = interfase.Variable("x2", lb=0, ub=10)
+    # c1 = interfase.Constraint(2 * x1 - x2, lb=0, ub=0)  # Equality constraint
+    # model.add([x1, x2, c1])
+    # model.objective = interfase.Objective(x1 + x2, direction="max")
+    interfase = _choose_optlang_interfase(solver)
+    model = interfase.Model(name='FVA Solver Model')
+    m, n = ecosystem_model.Ssigma.shape
+    assert m == len(ecosystem_model.sysmetabolites)
+    assert n == len(ecosystem_model.sysreactions)
+    # Create flux variables
+    flux_variables = [interfase.Variable(rxn, lb=ecosystem_model.lb[i], ub=ecosystem_model.ub[i]) for i, rxn in
+                      enumerate(ecosystem_model.sysreactions)]
+    model.add(flux_variables, sloppy=True)
+    model.update()
+    for i in tqdm(range(m)):
+        terms_const = [flux_variables[j] * ecosystem_model.Ssigma[i, j] for j in range(n) if ecosystem_model.Ssigma[i, j] != 0]
+        mass_const = interfase.Constraint(sum(terms_const), lb=0, ub=0)
+        model.add(mass_const, sloppy=True)
+    model.update()
+    model.objective = interfase.Objective(flux_variables[0], direction="max")
     return model
-
-
-
-
