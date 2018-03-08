@@ -44,14 +44,12 @@ def mo_fba(ecosystem_model,**kwargs):
 
 def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9,solver=None):
     """Calculate the MO-FVA near the Pareto Front """
-    interface = _choose_optlang_interfase(solver)
-    model = interface.Model(name='Dummy')
-    x1 = interface.Variable("x1", lb=0, ub=20)
-    x2 = interface.Variable("x2", lb=0, ub=10)
-    c1 = interface.Constraint(2 * x1 - x2, lb=0, ub=0)  # Equality constraint
-    model.add([x1, x2, c1])
-    model.objective = interface.Objective(x1 + x2, direction="max")
-    return model
+    if solver == 'gurobi':
+        from gurobipy import *
+        model = Model('FVA problem')
+         
+
+
 
 
 
