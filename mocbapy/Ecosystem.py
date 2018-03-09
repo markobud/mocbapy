@@ -43,6 +43,7 @@ class EcosystemModel:
 
     def _construct_ecosystem_pool(self):
         """Check all metabolites used in import/export exchanges and construct the pool compartment"""
+        # TODO: Skip all reactions not EX (see Thiele et the thousand authors COBRA conventions)
         pooldict = defaultdict(list)
         for model in self.models:
             for rxn_ex in model.exchanges:
