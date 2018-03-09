@@ -19,6 +19,7 @@ def _choose_optlang_interfase(solver=None):
         raise RuntimeError("Solver \'{}\' not available. Available solvers: {}".format(solver, str(avail)))
     return list_solvers.solvers[solver]
 
+
 def create_model(model_array=None, metabolic_dict=None):
     """Retunrs ans EcosystemModel from parameters"""
     return EcosystemModel(model_array=model_array, metabolic_dict=metabolic_dict)
@@ -42,15 +43,12 @@ def mo_fba(ecosystem_model,**kwargs):
     return bensolve(vlp_eco)
 
 
-def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9,solver=None):
+def mo_fva(ecosystem_model, base_model = None, fba=None, reactions=None, alpha=0.9,solver=None):
     """Calculate the MO-FVA near the Pareto Front """
+    if solver is None:
+        raise RuntimeError('No solver selected')
     if solver == 'gurobi':
-        from gurobipy import *
-        model = Model('FVA problem')
-         
-
-
-
-
-
+        pass
+    else:
+        raise RuntimeError('solver {} interfase not implemented'.format(solver))
 

@@ -5,21 +5,36 @@ Created on Thu May  4 15:35:50 2017
 Construct Ecosystem model
 @author: mbudinich
 """
+from tqdm import tqdm
+from benpy import vlpProblem
+from collections import OrderedDict, defaultdict
+from warnings import warn
+
 from cobra.util.array import create_stoichiometric_matrix
 from numpy import zeros
 from scipy.sparse import lil_matrix, block_diag, eye
-from benpy import vlpProblem
-from collections import OrderedDict,defaultdict
-from warnings import warn
 
 
-# %%
 class EcosystemModel:
 
-    @property
-    def bensolve_default_options(self):
-        """Returns bensolve default options"""
-        return vlpProblem().default_options
+    def build_base_opt_model(self,solver=None):
+        """Returns underlying optimization problem"""
+        if solver is None:
+            raise RuntimeError("No solver selected")
+        if solver == 'gurobi':
+            import gurobi
+            model = gurobi.Model('Base Constrained Model')
+            fluxes = list()
+            (m,r) = self.Ssigma.shape
+            print("Adding flux variables")
+            for j in tqdm(range(r)):
+                fluxes.append(model.addVar(lb=self.lb[j], ub=self.ub[j], name=self.sysreactions[j]))
+            print("Adding constraints")
+            for i in tqdm(range(m)):
+                model.addConstr(gurobi.quicksum([self.Ssigma[i, j]*fluxes[j] for j in range(r) if self.Ssigma[i, j] != 0]) == 0 )
+            return model
+        else:
+            RuntimeError("Solver not implemented")
 
     def _construct_ecosystem_pool(self):
         """Check all metabolites used in import/export exchanges and construct the pool compartment"""
