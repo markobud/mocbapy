@@ -11,15 +11,12 @@ from scipy.sparse import lil_matrix, block_diag, eye
 from benpy import vlpProblem
 from collections import OrderedDict, defaultdict
 from warnings import warn
+from tqdm import tqdm
 
 
-# %%
+# TODO: Include a Metabolite, Reaction and Model class with getters/setters to update underlying model
+# ^Perhaps associate: Model <-> math_model (and extra constr.?), reaction <-> variable and metabolite <-> constraint
 class EcosystemModel:
-
-    @property
-    def bensolve_default_options(self):
-        """Returns bensolve default options"""
-        return vlpProblem().default_options
 
     def _construct_ecosystem_pool(self):
         """Check all metabolites used in import/export exchanges and construct the pool compartment"""
@@ -27,8 +24,8 @@ class EcosystemModel:
         for model in self.models:
             for rxn_ex in model.exchanges:
                 for met_ex in rxn_ex.metabolites:
-                    if (met_ex.id,model) in self.metabolic_dict:
-                        met_name = self.metabolic_dict[(met_ex.id,model)]
+                    if (met_ex.id, model) in self.metabolic_dict:
+                        met_name = self.metabolic_dict[(met_ex.id, model)]
                         pooldict[met_name].append((model, rxn_ex, rxn_ex.get_coefficient(met_ex.id)))
         self._pooldict = dict(pooldict)
 
@@ -65,9 +62,9 @@ class EcosystemModel:
         self.lb.extend(pool_lb)
         self.ub.extend(pool_ub)
 
-        array_form = block_diag( [create_stoichiometric_matrix(model, array_type="lil")
-                                  for model in self.models],
-                                 format="lil")
+        array_form = block_diag([create_stoichiometric_matrix(model, array_type="lil")
+                                 for model in self.models],
+                                format="lil")
 
         self.Ssigma = block_diag([array_form, -eye(len(self.pool_ex_rxns))], format="lil")
         for met in self._pooldict.keys():
@@ -77,6 +74,32 @@ class EcosystemModel:
                 rxn_name = "{}:{}".format(reaction.id, model.id)
                 rxn_idx = self.sysreactions.index(rxn_name)
                 self.Ssigma[met_idx, rxn_idx] = -coeff
+
+    def build_base_opt_model(self, solver='gurobi'):
+        """ Builds the underlying base optimization problem Sv = 0, lb <= v <= ub """
+        if solver == 'gurobi':
+            import gurobipy
+            model = gurobipy.Model('Base opt problem')
+            m, n = self.Ssigma.shape
+            assert m == len(self.sysmetabolites)
+            assert n == len(self.sysreactions)
+            # Create flux variables
+            flux_variables = list()
+            for i, rxn in enumerate(self.sysreactions):
+                flux_variables.append(model.addVar(lb=self.lb[i], ub=self.ub[i], name=rxn))
+                model.update()
+            print("Building basic FBA constraints")
+
+            for i in tqdm(range(m), ascii=True):
+                model.addConstr(gurobipy.quicksum(
+                    [self.Ssigma[i, j] * flux_variables[j] for j in range(n) if self.Ssigma[i, j] != 0]) == 0)
+
+            model.update()
+            model.setObjective(flux_variables[7], sense=gurobipy.GRB.MAXIMIZE)
+            model.update()
+            return model
+        else:
+            warn("No solver selected", RuntimeWarning)
 
     def __init__(self, model_array=None, metabolic_dict=None):
 
@@ -110,7 +133,7 @@ class EcosystemModel:
         Pretty inefficient, re-runs all the steps again for each addition"""
         self.__init__(self.models.add(model), self.metabolic_dict)
 
-    def to_vlp(self,**kwargs):
+    def to_vlp(self, **kwargs):
         """Returns a vlp problem from EcosystemModel"""
         # We are using bensolve-2.0.1:
         # B is coefficient matrix
@@ -141,6 +164,3 @@ class EcosystemModel:
         vlp.Z = None
         vlp.c = None
         return vlp
-
-
-
