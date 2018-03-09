@@ -18,5 +18,18 @@ test_EcoSys.lb[index_gluc_pool] = -5
 bensolve_opts = mocbapy.bensolve_default_options
 bensolve_opts['message_level'] = 0
 sol_mofba = mocbapy.mo_fba(test_EcoSys, options=bensolve_opts)
-base_problem = mocbapy.build_base_opt_model(test_EcoSys,solver='gurobi')
+print(sol_mofba)
 
+#Objective reactions:
+#test_EcoSys.sysreactions[7]
+#test_EcoSys.sysreactions[2590]
+
+base_problem = test_EcoSys.build_base_opt_model(solver='gurobi')
+#Pick up one extrme point
+pext_3=sol_mofba.Primal.vertex_value[3]
+fva_dict = {test_EcoSys.sysreactions[7]:pext_3[0], test_EcoSys.sysreactions[2590]:pext_3[1]}
+fva_res_pext3 = mocbapy.mo_fva(base_model=base_problem, fba=fva_dict, solver='gurobi')
+
+pext_4=sol_mofba.Primal.vertex_value[4]
+fva_dict = {test_EcoSys.sysreactions[7]:pext_4[0], test_EcoSys.sysreactions[2590]:pext_4[1]}
+fva_res_pext4 = mocbapy.mo_fva(base_model=base_problem, fba=fva_dict, solver='gurobi')
