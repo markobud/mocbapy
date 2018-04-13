@@ -13,9 +13,6 @@ from collections import OrderedDict, defaultdict
 from warnings import warn
 from tqdm import tqdm
 
-
-# TODO: Include a Metabolite, Reaction and Model class with getters/setters to update underlying model
-# ^Perhaps associate: Model <-> math_model (and extra constr.?), reaction <-> variable and metabolite <-> constraint
 class EcosystemModel:
 
     def _construct_ecosystem_pool(self):
