@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Thu May  4 15:35:50 2017
@@ -9,6 +8,7 @@ from tqdm import tqdm
 from benpy import vlpProblem
 from collections import OrderedDict, defaultdict
 from warnings import warn
+from tqdm import tqdm
 
 from cobra.util.array import create_stoichiometric_matrix
 from numpy import zeros
@@ -17,29 +17,10 @@ from scipy.sparse import lil_matrix, block_diag, eye
 
 class EcosystemModel:
 
-    def build_base_opt_model(self, solver=None):
-        """Returns underlying optimization problem"""
-        if solver is None:
-            raise RuntimeError("No solver selected")
-        base_name = 'Base Constrained Model'
-        print("Building base optimization model using {}".format(solver))
-        if solver == 'gurobi':
-            import gurobi
-            model = gurobi.Model(base_name)
-            model.setObjective(0)
-            fluxes = list()
-            (m,r) = self.Ssigma.shape
-            print("Adding flux variables")
-            for j in tqdm(range(r)):
-                fluxes.append(model.addVar(lb=self.lb[j], ub=self.ub[j], name=self.sysreactions[j]))
-            model.update()
-            print("Adding constraints")
-            for i in tqdm(range(m)):
-                model.addConstr(gurobi.quicksum([self.Ssigma[i, j]*fluxes[j] for j in range(r) if self.Ssigma[i, j] != 0]) == 0 )
-            model.update()
-            return model
-        else:
-            raise RuntimeError("Solver not implemented")
+    @property
+    def bensolve_default_options(self):
+        """Returns bensolve default options"""
+        return vlpProblem().default_options
 
     def _construct_ecosystem_pool(self):
         """Check all metabolites used in import/export exchanges and construct the pool compartment"""
@@ -48,8 +29,8 @@ class EcosystemModel:
         for model in self.models:
             for rxn_ex in model.exchanges:
                 for met_ex in rxn_ex.metabolites:
-                    if (met_ex.id,model) in self.metabolic_dict:
-                        met_name = self.metabolic_dict[(met_ex.id,model)]
+                    if (met_ex.id, model) in self.metabolic_dict:
+                        met_name = self.metabolic_dict[(met_ex.id, model)]
                         pooldict[met_name].append((model, rxn_ex, rxn_ex.get_coefficient(met_ex.id)))
         self._pooldict = dict(pooldict)
 
@@ -86,9 +67,9 @@ class EcosystemModel:
         self.lb.extend(pool_lb)
         self.ub.extend(pool_ub)
 
-        array_form = block_diag( [create_stoichiometric_matrix(model, array_type="lil")
-                                  for model in self.models],
-                                 format="lil")
+        array_form = block_diag([create_stoichiometric_matrix(model, array_type="lil")
+                                 for model in self.models],
+                                format="lil")
 
         self.Ssigma = block_diag([array_form, -eye(len(self.pool_ex_rxns))], format="lil")
         for met in self._pooldict.keys():
@@ -98,6 +79,26 @@ class EcosystemModel:
                 rxn_name = "{}:{}".format(reaction.id, model.id)
                 rxn_idx = self.sysreactions.index(rxn_name)
                 self.Ssigma[met_idx, rxn_idx] = -coeff
+
+    def build_base_opt_model(self, solver=None):
+        """ Builds the underlying base optimization problem Sv = 0, lb <= v <= ub """
+        interfase = _choose_optlang_interfase(solver)
+        model = interfase.Model(name='Base Solver Model')
+        m, n = self.Ssigma.shape
+        assert m == len(self.sysmetabolites)
+        assert n == len(self.sysreactions)
+        # Create flux variables
+        flux_variables = [interfase.Variable(rxn, lb=ecosystem_model.lb[i], ub=ecosystem_model.ub[i]) for i, rxn in
+                          enumerate(ecosystem_model.sysreactions)]
+        model.add(flux_variables, sloppy=True)
+        model.update()
+#        for i in tqdm(range(m)):
+#            terms_const = [flux_variables[j] * ecosystem_model.Ssigma[i, j] for j in range(n) if ecosystem_model.Ssigma[i, j] != 0]
+#            mass_const = interfase.Constraint(sum(terms_const), lb=0, ub=0)
+#            model.add(mass_const, sloppy=True)
+#        model.update()
+#        model.objective = interfase.Objective(flux_variables[0], direction="max")
+        return model
 
     def __init__(self, model_array=None, metabolic_dict=None):
 
@@ -131,7 +132,7 @@ class EcosystemModel:
         Pretty inefficient, re-runs all the steps again for each addition"""
         self.__init__(self.models.add(model), self.metabolic_dict)
 
-    def to_vlp(self,**kwargs):
+    def to_vlp(self, **kwargs):
         """Returns a vlp problem from EcosystemModel"""
         # We are using bensolve-2.0.1:
         # B is coefficient matrix
@@ -162,6 +163,3 @@ class EcosystemModel:
         vlp.Z = None
         vlp.c = None
         return vlp
-
-
-
