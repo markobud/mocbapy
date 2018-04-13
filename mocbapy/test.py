@@ -1,4 +1,4 @@
-#mocbapy test file
+# mocbapy test file
 import cobra.test
 import mocbapy
 

@@ -10,5 +10,5 @@ setup(
     license='GPLv3',
     long_description='Multi Objective Constrait-Based Analysis in python',
     packages = ['mocbapy'],
-    platforms='linux, OSX',
+    platforms='linux, OSX', install_requires=['pandas', 'optlang', 'cobra', 'tqdm', 'numpy', 'scipy']
 )

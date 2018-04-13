@@ -67,7 +67,7 @@ def mo_fva(base_model = None, fba=None, reactions=None, alpha=0.9,solver=None):
         if fba is None:
             raise RuntimeError("No restrictions given")
         # TODO: How to verify that keys in fba dict are MO-FBA objectives?
-        # TODO: Gurobi and context managemnt
+        # TODO: Gurobi and context management
         if reactions is None: #all reactions
             reactions = [r.VarName for r in base_model.getVars()]
         fva_res = {rxn:{} for rxn in reactions}
