@@ -4,17 +4,15 @@ Created on Thu May  4 15:35:50 2017
 Construct Ecosystem model
 @author: mbudinich
 """
-from tqdm import tqdm
 from benpy import vlpProblem
 from collections import OrderedDict, defaultdict
 from warnings import warn
-from tqdm import tqdm
 
 from cobra.util.array import create_stoichiometric_matrix
 from numpy import zeros
 from scipy.sparse import lil_matrix, block_diag, eye
 
-
+#TODO: Speed up FVA (using chached model?)
 class EcosystemModel:
 
     @property
@@ -80,25 +78,6 @@ class EcosystemModel:
                 rxn_idx = self.sysreactions.index(rxn_name)
                 self.Ssigma[met_idx, rxn_idx] = -coeff
 
-    def build_base_opt_model(self, solver=None):
-        """ Builds the underlying base optimization problem Sv = 0, lb <= v <= ub """
-        interfase = _choose_optlang_interfase(solver)
-        model = interfase.Model(name='Base Solver Model')
-        m, n = self.Ssigma.shape
-        assert m == len(self.sysmetabolites)
-        assert n == len(self.sysreactions)
-        # Create flux variables
-        flux_variables = [interfase.Variable(rxn, lb=ecosystem_model.lb[i], ub=ecosystem_model.ub[i]) for i, rxn in
-                          enumerate(ecosystem_model.sysreactions)]
-        model.add(flux_variables, sloppy=True)
-        model.update()
-#        for i in tqdm(range(m)):
-#            terms_const = [flux_variables[j] * ecosystem_model.Ssigma[i, j] for j in range(n) if ecosystem_model.Ssigma[i, j] != 0]
-#            mass_const = interfase.Constraint(sum(terms_const), lb=0, ub=0)
-#            model.add(mass_const, sloppy=True)
-#        model.update()
-#        model.objective = interfase.Objective(flux_variables[0], direction="max")
-        return model
 
     def __init__(self, model_array=None, metabolic_dict=None):
 

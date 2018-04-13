@@ -1,10 +1,11 @@
 # coding=utf-8
-from Ecosystem import EcosystemModel
+import optlang
+
+from EcosystemModel import EcosystemModel
 from collections import defaultdict
 from benpy import solve as bensolve, vlpSolution, vlpProblem
 from cobra.util import solver as list_solvers
 import pandas
-import optlang
 from warnings import warn
 from tqdm import tqdm
 
@@ -54,3 +55,66 @@ def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None):
     # c1 = interfase.Constraint(2 * x1 - x2, lb=0, ub=0)  # Equality constraint
     # model.add([x1, x2, c1])
     # model.objective = interfase.Objective(x1 + x2, direction="max")
+    interfase = _choose_optlang_interfase(solver)
+    base_model = build_base_opt_model(ecosystem_model, solver=solver)
+    base_model.update()
+    rxn_dict = {r.name: r for r in base_model.variables}
+    if fba is None:
+        raise RuntimeError("No MO-FBA restriction were given")
+    if reactions is None: #Go for all
+        reactions = rxn_dict.keys()
+    fva_res = {rxn:{} for rxn in reactions}
+    for obj_id,value in fba.iteritems():
+        var = rxn_dict[obj_id]
+        base_model.add(interfase.Constraint(var, lb=value*alpha))
+    base_model.update()
+
+    for senses in ("minimum", "maximum"):
+        synonyms = {"minimum": "min", "maximum": "max"}
+        print("Solving {} optimizations".format(senses))
+        for rxn in tqdm(reactions):
+            flux = rxn_dict[rxn]
+            base_model.objective = interfase.Objective(flux, direction=synonyms[senses])
+            base_model.update()
+            base_model.optimize()
+            fva_res[rxn][senses] = flux.primal
+
+    return pandas.DataFrame.from_dict(fva_res, orient='index')
+
+
+
+
+
+def sum_from_list(list_expr):
+    def sum_from_list_p(le, a, b):
+        if (a == b):
+            return 0
+        else:
+            if(b - a == 1):
+                return le[a]
+            else:
+                middle = int((a+b)/2)
+                return sum_from_list_p(le, a, middle) + sum_from_list_p(le, middle, b)
+
+    return sum_from_list_p(list_expr, 0, len(list_expr))
+
+
+def build_base_opt_model(ecomodel, solver=None):
+    """ Builds the underlying base optimization problem Sv = 0, lb <= v <= ub """
+    interfase = _choose_optlang_interfase(solver)
+    model = interfase.Model(name='Base Solver Model')
+    m, n = ecomodel.Ssigma.shape
+    assert m == len(ecomodel.sysmetabolites)
+    assert n == len(ecomodel.sysreactions)
+    # Create flux variables
+    flux_variables = [interfase.Variable(rxn, lb=ecomodel.lb[i], ub=ecomodel.ub[i]) for i, rxn in
+                      enumerate(ecomodel.sysreactions)]
+    model.add(flux_variables, sloppy=True)
+    model.update()
+    for i in tqdm(range(m)):
+        terms_const = [flux_variables[j] * ecomodel.Ssigma[i, j] for j in range(n) if ecomodel.Ssigma[i, j] != 0]
+        mass_const = interfase.Constraint(sum_from_list(terms_const), lb=0, ub=0)
+        model.add(mass_const, sloppy=True)
+    model.update()
+    model.objective = interfase.Objective(0, direction="max")
+    return model

@@ -1,7 +1,7 @@
 # mocbapy test file
 import cobra.test
 import mocbapy
-
+from mocbapy.utilities import build_base_opt_model
 test_arr = list()
 n_test = 2
 for i in range(n_test):
@@ -24,12 +24,12 @@ print(sol_mofba)
 #test_EcoSys.sysreactions[7]
 #test_EcoSys.sysreactions[2590]
 
-base_problem = test_EcoSys.build_base_opt_model(solver='gurobi')
+base_problem = build_base_opt_model(test_EcoSys, solver='glpk')
 #Pick up one extrme point
 pext_3=sol_mofba.Primal.vertex_value[3]
 fva_dict = {test_EcoSys.sysreactions[7]:pext_3[0], test_EcoSys.sysreactions[2590]:pext_3[1]}
-fva_res_pext3 = mocbapy.mo_fva(base_model=base_problem, fba=fva_dict, solver='gurobi')
+fva_res_pext3 = mocbapy.mo_fva(test_EcoSys, fba=fva_dict, solver='gurobi')
 
 pext_4=sol_mofba.Primal.vertex_value[4]
 fva_dict = {test_EcoSys.sysreactions[7]:pext_4[0], test_EcoSys.sysreactions[2590]:pext_4[1]}
-fva_res_pext4 = mocbapy.mo_fva(base_model=base_problem, fba=fva_dict, solver='gurobi')
+fva_res_pext4 = mocbapy.mo_fva(test_EcoSys, fba=fva_dict, solver='glpk')
