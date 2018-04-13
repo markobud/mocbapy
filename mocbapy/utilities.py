@@ -51,20 +51,3 @@ def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None):
     # c1 = interfase.Constraint(2 * x1 - x2, lb=0, ub=0)  # Equality constraint
     # model.add([x1, x2, c1])
     # model.objective = interfase.Objective(x1 + x2, direction="max")
-    interfase = _choose_optlang_interfase(solver)
-    model = interfase.Model(name='FVA Solver Model')
-    m, n = ecosystem_model.Ssigma.shape
-    assert m == len(ecosystem_model.sysmetabolites)
-    assert n == len(ecosystem_model.sysreactions)
-    # Create flux variables
-    flux_variables = [interfase.Variable(rxn, lb=ecosystem_model.lb[i], ub=ecosystem_model.ub[i]) for i, rxn in
-                      enumerate(ecosystem_model.sysreactions)]
-    model.add(flux_variables, sloppy=True)
-    model.update()
-    for i in tqdm(range(m)):
-        terms_const = [flux_variables[j] * ecosystem_model.Ssigma[i, j] for j in range(n) if ecosystem_model.Ssigma[i, j] != 0]
-        mass_const = interfase.Constraint(sum(terms_const), lb=0, ub=0)
-        model.add(mass_const, sloppy=True)
-    model.update()
-    model.objective = interfase.Objective(flux_variables[0], direction="max")
-    return model

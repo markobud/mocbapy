@@ -72,31 +72,25 @@ class EcosystemModel:
                 rxn_idx = self.sysreactions.index(rxn_name)
                 self.Ssigma[met_idx, rxn_idx] = -coeff
 
-    def build_base_opt_model(self, solver='gurobi'):
+    def build_base_opt_model(self, solver=None):
         """ Builds the underlying base optimization problem Sv = 0, lb <= v <= ub """
-        if solver == 'gurobi':
-            import gurobipy
-            model = gurobipy.Model('Base opt problem')
-            m, n = self.Ssigma.shape
-            assert m == len(self.sysmetabolites)
-            assert n == len(self.sysreactions)
-            # Create flux variables
-            flux_variables = list()
-            for i, rxn in enumerate(self.sysreactions):
-                flux_variables.append(model.addVar(lb=self.lb[i], ub=self.ub[i], name=rxn))
-                model.update()
-            print("Building basic FBA constraints")
-
-            for i in tqdm(range(m), ascii=True):
-                model.addConstr(gurobipy.quicksum(
-                    [self.Ssigma[i, j] * flux_variables[j] for j in range(n) if self.Ssigma[i, j] != 0]) == 0)
-
-            model.update()
-            model.setObjective(flux_variables[7], sense=gurobipy.GRB.MAXIMIZE)
-            model.update()
-            return model
-        else:
-            warn("No solver selected", RuntimeWarning)
+        interfase = _choose_optlang_interfase(solver)
+        model = interfase.Model(name='Base Solver Model')
+        m, n = self.Ssigma.shape
+        assert m == len(self.sysmetabolites)
+        assert n == len(self.sysreactions)
+        # Create flux variables
+        flux_variables = [interfase.Variable(rxn, lb=ecosystem_model.lb[i], ub=ecosystem_model.ub[i]) for i, rxn in
+                          enumerate(ecosystem_model.sysreactions)]
+        model.add(flux_variables, sloppy=True)
+        model.update()
+#        for i in tqdm(range(m)):
+#            terms_const = [flux_variables[j] * ecosystem_model.Ssigma[i, j] for j in range(n) if ecosystem_model.Ssigma[i, j] != 0]
+#            mass_const = interfase.Constraint(sum(terms_const), lb=0, ub=0)
+#            model.add(mass_const, sloppy=True)
+#        model.update()
+#        model.objective = interfase.Objective(flux_variables[0], direction="max")
+        return model
 
     def __init__(self, model_array=None, metabolic_dict=None):
 
