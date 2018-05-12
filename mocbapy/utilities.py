@@ -1,5 +1,8 @@
 # coding=utf-8
 import optlang
+import matplotlib
+import numpy as np
+import matplotlib.pyplot as plt
 
 from EcosystemModel import EcosystemModel
 from collections import defaultdict
@@ -8,6 +11,14 @@ from cobra.util import solver as list_solvers
 import pandas
 from warnings import warn
 from tqdm import tqdm
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+from scipy.spatial import ConvexHull
+
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import proj3d
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator
 
 
 def _choose_optlang_interfase(solver=None):
@@ -82,15 +93,13 @@ def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None):
     return pandas.DataFrame.from_dict(fva_res, orient='index')
 
 
-
-
-
 def sum_from_list(list_expr):
+    """ Dichotomous construction of expressions"""
     def sum_from_list_p(le, a, b):
-        if (a == b):
+        if a == b:
             return 0
         else:
-            if(b - a == 1):
+            if b - a == 1:
                 return le[a]
             else:
                 middle = int((a+b)/2)
@@ -118,3 +127,20 @@ def build_base_opt_model(ecomodel, solver=None):
     model.update()
     model.objective = interfase.Objective(0, direction="max")
     return model
+
+
+def draw3d(polygon):
+    """ Returns a 3D figure of the Pareto Front. Input: A mo-fba Polygon (eg. sol_mofba.Primal) """
+    points = polygon.vertex_value[[x == 1 for x in polygon.vertex_type]]
+    hull = ConvexHull(points)
+    pd = Poly3DCollection([hull.points[s] for s in hull.simplices])
+    fig = plt.figure(figsize=(9, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    pd.set_facecolor('yellow')
+    pd.set_alpha(0.4)
+    pd.set_edgecolor('black')
+
+    ax.add_collection3d(pd)
+    return fig, ax
+
+
