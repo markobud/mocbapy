@@ -74,9 +74,10 @@ def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None):
         raise RuntimeError("No MO-FBA restriction were given")
     if reactions is None: #Go for all
         reactions = rxn_dict.keys()
-    fva_res = {rxn:{} for rxn in reactions}
-    for obj_id,value in fba.iteritems():
+    fva_res = {rxn: {} for rxn in reactions}
+    for obj_id, value in fba.iteritems():
         var = rxn_dict[obj_id]
+        print("Adding Constraint {} <= {}*{}".format(obj_id, value, alpha))
         base_model.add(interfase.Constraint(var, lb=value*alpha))
     base_model.update()
 
