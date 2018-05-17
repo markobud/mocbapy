@@ -12,13 +12,9 @@ from cobra.util.array import create_stoichiometric_matrix
 from numpy import zeros
 from scipy.sparse import lil_matrix, block_diag, eye
 
+
 #TODO: Speed up FVA (using chached model?)
 class EcosystemModel:
-
-    @property
-    def bensolve_default_options(self):
-        """Returns bensolve default options"""
-        return vlpProblem().default_options
 
     def _construct_ecosystem_pool(self):
         """Check all metabolites used in import/export exchanges and construct the pool compartment"""
@@ -78,9 +74,7 @@ class EcosystemModel:
                 rxn_idx = self.sysreactions.index(rxn_name)
                 self.Ssigma[met_idx, rxn_idx] = -coeff
 
-
     def __init__(self, model_array=None, metabolic_dict=None):
-
         """Instantiate the EcosystemModel object model_array is an array of cobra models to connect
         metabolic_dict is a dictionary such as:
             * Its keys correspond to tuples (metabolite_id,model)
@@ -142,3 +136,13 @@ class EcosystemModel:
         vlp.Z = None
         vlp.c = None
         return vlp
+
+
+def create_model(model_array=None, metabolic_dict=None):
+    """Returns ans EcosystemModel from parameters"""
+    return EcosystemModel(model_array=model_array, metabolic_dict=metabolic_dict)
+
+
+def bensolve_default_options():
+    """Returns default options for bensolve """
+    return vlpProblem().default_options

@@ -1,27 +1,13 @@
 # coding=utf-8
 import optlang
-import matplotlib
-import numpy as np
-import matplotlib.pyplot as plt
-
-from EcosystemModel import EcosystemModel
 from collections import defaultdict
-from benpy import solve as bensolve, vlpSolution, vlpProblem
 from cobra.util import solver as list_solvers
-import pandas
 from warnings import warn
 from tqdm import tqdm
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-
-from scipy.spatial import ConvexHull
-
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d import proj3d
-from matplotlib import cm
-from matplotlib.ticker import LinearLocator
 
 
-def _choose_optlang_interfase(solver=None):
+def choose_optlang_interfase(solver=None):
+    """Returns a solver instance"""
     avail = [sol.lower() for sol, exist in optlang.available_solvers.iteritems() if exist]
     if solver is None:
         warn("Warning: No solver selected. Available solvers: {}".format(str(avail)))
@@ -35,11 +21,6 @@ def _choose_optlang_interfase(solver=None):
     return list_solvers.solvers[solver]
 
 
-def create_model(model_array=None, metabolic_dict=None):
-    """Returns ans EcosystemModel from parameters"""
-    return EcosystemModel(model_array=model_array, metabolic_dict=metabolic_dict)
-
-
 def get_common_mets(model_list):
     """
         Naive implementation of getting common exchange metabolites, using their id's.
@@ -51,47 +32,6 @@ def get_common_mets(model_list):
             for met_ex in rxn_ex.metabolites:
                 common_mets[(met_ex.id, model)] = met_ex.id
     return dict(common_mets)
-
-
-def mo_fba(ecosystem_model, **kwargs):
-    """Solve the Ecosystem Model using bensolve procedure"""
-    vlp_eco = ecosystem_model.to_vlp(**kwargs)
-    return bensolve(vlp_eco)
-
-
-def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None):
-    """Calculate the MO-FVA near the Pareto Front """
-    # x1 = interfase.Variable("x1", lb=0, ub=20)
-    # x2 = interfase.Variable("x2", lb=0, ub=10)
-    # c1 = interfase.Constraint(2 * x1 - x2, lb=0, ub=0)  # Equality constraint
-    # model.add([x1, x2, c1])
-    # model.objective = interfase.Objective(x1 + x2, direction="max")
-    interfase = _choose_optlang_interfase(solver)
-    base_model = build_base_opt_model(ecosystem_model, solver=solver)
-    base_model.update()
-    rxn_dict = {r.name: r for r in base_model.variables}
-    if fba is None:
-        raise RuntimeError("No MO-FBA restriction were given")
-    if reactions is None: #Go for all
-        reactions = rxn_dict.keys()
-    fva_res = {rxn: {} for rxn in reactions}
-    for obj_id, value in fba.iteritems():
-        var = rxn_dict[obj_id]
-        base_model.add(interfase.Constraint(var, ub=value, lb=value*alpha))
-        print("Adding Constraint {}*{} <= {} <= {}".format(alpha, value, obj_id, value))
-    base_model.update()
-
-    for senses in ("minimum", "maximum"):
-        synonyms = {"minimum": "min", "maximum": "max"}
-        print("Solving {} optimizations".format(senses))
-        for rxn in tqdm(reactions):
-            flux = rxn_dict[rxn]
-            base_model.objective = interfase.Objective(flux, direction=synonyms[senses])
-            base_model.update()
-            base_model.optimize()
-            fva_res[rxn][senses] = flux.primal
-
-    return pandas.DataFrame.from_dict(fva_res, orient='index')
 
 
 def sum_from_list(list_expr):
@@ -128,20 +68,3 @@ def build_base_opt_model(ecomodel, solver=None):
     model.update()
     model.objective = interfase.Objective(0, direction="max")
     return model
-
-
-def draw3d(polygon):
-    """ Returns a 3D figure of the Pareto Front. Input: A mo-fba Polygon (eg. sol_mofba.Primal) """
-    points = polygon.vertex_value[[x == 1 for x in polygon.vertex_type]]
-    hull = ConvexHull(points)
-    pd = Poly3DCollection([hull.points[s] for s in hull.simplices])
-    fig = plt.figure(figsize=(9, 10))
-    ax = fig.add_subplot(111, projection='3d')
-    pd.set_facecolor('yellow')
-    pd.set_alpha(0.4)
-    pd.set_edgecolor('black')
-
-    ax.add_collection3d(pd)
-    return fig, ax
-
-
