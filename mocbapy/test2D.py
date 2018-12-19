@@ -35,6 +35,7 @@ max_vals = np.amax(ext_points,0)
 fig, ax = mocbapy.draw.draw2d(sol_mofba)
 fig.savefig('test2D.png')
 
+fva_test = mocbapy.analysis.mo_fva(test_EcoSys)
 
 #fig, ax = mocbapy.draw.draw3d(sol_mofba.Primal,norm_facts=max_vals)
 #fig.savefig('test_norm.png')
