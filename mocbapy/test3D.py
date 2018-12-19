@@ -1,11 +1,11 @@
 # mocbapy test file
 import cobra.test
+import mocbapy.utilities
 import mocbapy.analysis
 import mocbapy.draw
-import mocbapy.utilities
+import numpy as np
 from mocbapy.EcosystemModel import create_model, bensolve_default_options
 
-from mocbapy.utilities import build_base_opt_model
 test_arr = list()
 n_test = 3
 for i in range(n_test):
@@ -23,6 +23,21 @@ bensolve_opts = bensolve_default_options()
 bensolve_opts['message_level'] = 0
 sol_mofba = mocbapy.analysis.mo_fba(test_EcoSys, options=bensolve_opts)
 print(sol_mofba)
+
+#Extract extreme points
+ext_points = np.asarray([v for i, v in enumerate(sol_mofba.Primal.vertex_value) if sol_mofba.Primal.vertex_type[i] == 1])
+
+#Max values of each model in the pareto front
+max_vals = np.amax(ext_points,0)
+
+test = mocbapy.draw.draw(sol_mofba)
+
+fig, ax = mocbapy.draw.draw(sol_mofba.Primal)
+fig.savefig('test.png')
+
+
+#fig, ax = mocbapy.draw.draw3d(sol_mofba.Primal,norm_facts=max_vals)
+#fig.savefig('test_norm.png')
 
 #Objective reactions:
 #test_EcoSys.sysreactions[7]

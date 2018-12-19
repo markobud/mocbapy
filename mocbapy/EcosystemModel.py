@@ -13,10 +13,10 @@ from numpy import zeros
 from scipy.sparse import lil_matrix, block_diag, eye
 
 
-#TODO: Speed up FVA (using chached model?)
+# TODO: Speed up FVA (using chached model?)
 class EcosystemModel:
 
-    def _construct_ecosystem_pool(self):
+    def _construct_ecosystem_pool( self ):
         """Check all metabolites used in import/export exchanges and construct the pool compartment"""
         # TODO: Skip all reactions not EX (see Thiele et the thousand authors COBRA conventions)
         pooldict = defaultdict(list)
@@ -28,7 +28,7 @@ class EcosystemModel:
                         pooldict[met_name].append((model, rxn_ex, rxn_ex.get_coefficient(met_ex.id)))
         self._pooldict = dict(pooldict)
 
-    def _populate_ecosystem_model(self):
+    def _populate_ecosystem_model( self ):
         """Calculate the object attributes after pool construction"""
         self.pool_ex_rxns = []
         self.pool_ex_mets = []
@@ -74,7 +74,7 @@ class EcosystemModel:
                 rxn_idx = self.sysreactions.index(rxn_name)
                 self.Ssigma[met_idx, rxn_idx] = -coeff
 
-    def __init__(self, model_array=None, metabolic_dict=None):
+    def __init__( self, model_array=None, metabolic_dict=None ):
         """Instantiate the EcosystemModel object model_array is an array of cobra models to connect
         metabolic_dict is a dictionary such as:
             * Its keys correspond to tuples (metabolite_id,model)
@@ -100,12 +100,42 @@ class EcosystemModel:
         elif metabolic_dict is None:
             warn("No metabolic dictionary is given")
 
-    def add_comparment(self, model):
+    def add_comparment( self, model ):
         """Utility function to add a new agent to models.
         Pretty inefficient, re-runs all the steps again for each addition"""
         self.__init__(self.models.add(model), self.metabolic_dict)
 
-    def to_vlp(self, **kwargs):
+    def add_pool_reaction( self, name, reaction, lb=-1000, ub=1000):
+        """Adds manually a reaction to the pool.
+        Require a dictionary of pool metabolites:stoichiometric coefficient"""
+        # First, we check reactions and metabolites to add. Reaction is sure to be new, metabolites need to be checked
+        if name in self.pool_ex_rxns:
+            raise RuntimeError("Reaction already included")
+        (nm, nr) = self.Ssigma.shape
+        self.sysreactions.append(name)
+        nr = nr + 1
+        self.lb.append(lb)
+        self.ub.append(ub)
+        rxn_idx = self.sysreactions.index(name)
+        for met in reaction.keys():
+            if met not in self.sysmetabolites:
+                self.sysmetabolites.append(met)
+                nm = nm + 1
+
+        # Copy of old values
+        new_Ssigma = lil_matrix((nm, nr))
+        (l1, l2) = self.Ssigma.nonzero()
+        for im, ir in zip(l1, l2):
+            new_Ssigma[im, ir] = self.Ssigma[im, ir]
+
+        # new stoich. index in new_Ssigma
+        for met in reaction.keys():
+            met_idx = self.sysmetabolites.index(met)
+            new_Ssigma[met_idx, rxn_idx] = reaction[met]
+        # Replacement of Ssigma
+        self.Ssigma = new_Ssigma
+
+    def to_vlp( self, **kwargs ):
         """Returns a vlp problem from EcosystemModel"""
         # We are using bensolve-2.0.1:
         # B is coefficient matrix
@@ -138,7 +168,7 @@ class EcosystemModel:
         return vlp
 
 
-def create_model(model_array=None, metabolic_dict=None):
+def create_model( model_array=None, metabolic_dict=None ):
     """Returns ans EcosystemModel from parameters"""
     return EcosystemModel(model_array=model_array, metabolic_dict=metabolic_dict)
 

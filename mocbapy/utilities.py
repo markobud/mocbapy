@@ -51,7 +51,7 @@ def sum_from_list(list_expr):
 
 def build_base_opt_model(ecomodel, solver=None):
     """ Builds the underlying base optimization problem Sv = 0, lb <= v <= ub """
-    interfase = _choose_optlang_interfase(solver)
+    interfase = choose_optlang_interfase(solver)
     model = interfase.Model(name='Base Solver Model')
     m, n = ecomodel.Ssigma.shape
     assert m == len(ecomodel.sysmetabolites)

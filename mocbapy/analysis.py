@@ -1,16 +1,16 @@
 import pandas
 from benpy import solve as bensolve
-from utilities import choose_optlang_interfase, build_base_opt_model
+from .utilities import choose_optlang_interfase, build_base_opt_model
 from tqdm import tqdm
 
 
-def mo_fba( ecosystem_model, **kwargs ):
+def mo_fba(ecosystem_model, **kwargs):
     """Solve the Ecosystem Model using bensolve procedure"""
     vlp_eco = ecosystem_model.to_vlp(**kwargs)
     return bensolve(vlp_eco)
 
 
-def mo_fva( ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None ):
+def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None):
     """Calculate the MO-FVA near the Pareto Front """
     # optlang usage:
     # x1 = interfase.Variable("x1", lb=0, ub=20)
