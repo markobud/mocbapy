@@ -82,6 +82,7 @@ class EcosystemModel:
         """
 
         self.models = model_array
+        self.models_ids = [getattr(m, 'id', 'model_{}'.format(model_array.index(m))) for m in model_array]
         self.metabolic_dict = metabolic_dict
         self._pooldict = None
         self.pool_ex_rxns = None

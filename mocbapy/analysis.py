@@ -1,4 +1,5 @@
 import pandas
+from warnings import warn
 from benpy import solve as bensolve
 from .utilities import choose_optlang_interfase, build_base_opt_model
 from tqdm import tqdm
@@ -18,16 +19,17 @@ def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None):
     # c1 = interfase.Constraint(2 * x1 - x2, lb=0, ub=0)  # Equality constraint
     # model.add([x1, x2, c1])
     # model.objective = interfase.Objective(x1 + x2, direction="max")
+    if fba is None:
+        raise RuntimeError("No MO-FBA restriction were given")
     interfase = choose_optlang_interfase(solver)
+    warn("Building base optimization model")
     base_model = build_base_opt_model(ecosystem_model, solver=solver)
     base_model.update()
     rxn_dict = {r.name: r for r in base_model.variables}
-    if fba is None:
-        raise RuntimeError("No MO-FBA restriction were given")
     if reactions is None:  # Go for all
         reactions = rxn_dict.keys()
     fva_res = {rxn: {} for rxn in reactions}
-    for obj_id, value in fba.iteritems():
+    for obj_id, value in fba.items():
         var = rxn_dict[obj_id]
         base_model.add(interfase.Constraint(var, ub=value, lb=value * alpha))
         print("Adding Constraint {}*{} <= {} <= {}".format(alpha, value, obj_id, value))

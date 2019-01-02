@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 def choose_optlang_interfase(solver=None):
     """Returns a solver instance"""
-    avail = [sol.lower() for sol, exist in optlang.available_solvers.iteritems() if exist]
+    avail = [sol.lower() for sol, exist in optlang.available_solvers.items() if exist]
     if solver is None:
         warn("Warning: No solver selected. Available solvers: {}".format(str(avail)))
         if len(avail) == 0:
@@ -18,6 +18,7 @@ def choose_optlang_interfase(solver=None):
     solver = solver.lower()
     if solver not in avail:
         raise RuntimeError("Solver \'{}\' not available. Available solvers: {}".format(solver, str(avail)))
+    #TODO: Remove dependence on cobra.util if possible
     return list_solvers.solvers[solver]
 
 
