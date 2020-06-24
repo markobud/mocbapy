@@ -10,7 +10,7 @@ def mo_fba(ecosystem_model, **kwargs):
     vlp_eco = ecosystem_model.to_vlp(**kwargs)
     return bensolve(vlp_eco)
 
-
+#TODO: Check cobra code for a speed up
 def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None):
     """Calculate the MO-FVA near the Pareto Front """
     # optlang usage:

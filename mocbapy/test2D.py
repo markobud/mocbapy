@@ -4,6 +4,7 @@ import mocbapy.utilities
 import mocbapy.analysis
 import mocbapy.draw
 import numpy as np
+import re
 from mocbapy.EcosystemModel import create_model, bensolve_default_options
 
 test_arr = list()
@@ -35,9 +36,10 @@ max_vals = np.amax(ext_points,0)
 fig, ax = mocbapy.draw.draw2d(sol_mofba)
 fig.savefig('test2D.png')
 
-fba_res = {obj: 0.5 for obj in test_EcoSys.objectives}
-fba_res
-fva_test = mocbapy.analysis.mo_fva(test_EcoSys, fba=fba_res)
+#fba_res = {obj: 0.5 for obj in test_EcoSys.objectives}
+fba_res = {'{}:{}'.format(v[0][0],k): 0.5 for k, v in test_EcoSys.objectives.items()}
+ex_rxn = [r for r in test_EcoSys.sysreactions if re.match('.*:pool',r)]
+fva_test = mocbapy.analysis.mo_fva(test_EcoSys, fba=fba_res, reactions=ex_rxn)
 
 #fig, ax = mocbapy.draw.draw3d(sol_mofba.Primal,norm_facts=max_vals)
 #fig.savefig('test_norm.png')
