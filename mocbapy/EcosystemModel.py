@@ -101,7 +101,7 @@ class EcosystemModel:
         elif metabolic_dict is None:
             warn("No metabolic dictionary is given")
 
-    def add_comparment( self, model ):
+    def add_compartment( self, model ):
         """Utility function to add a new agent to models.
         Pretty inefficient, re-runs all the steps again for each addition"""
         self.__init__(self.models.add(model), self.metabolic_dict)
