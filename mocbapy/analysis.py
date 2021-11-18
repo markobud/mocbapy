@@ -26,10 +26,11 @@ def mo_fva(ecosystem_model, fba=None, reactions=None, alpha=0.9, solver=None):
     base_model = build_base_opt_model(ecosystem_model, solver=solver)
     base_model.update()
     rxn_dict = {r.name: r for r in base_model.variables}
-    if reactions is None:  # Go for all
+    if reactions is None:
+        warn("No selected reactions for FVA")# Go for all
         reactions = rxn_dict.keys()
     fva_res = {rxn: {} for rxn in reactions}
-    for obj_id, value in fba.iteritems():
+    for obj_id, value in fba.items():
         var = rxn_dict[obj_id]
         base_model.add(interfase.Constraint(var, ub=value, lb=value * alpha))
         print("Adding Constraint {}*{} <= {} <= {}".format(alpha, value, obj_id, value))
