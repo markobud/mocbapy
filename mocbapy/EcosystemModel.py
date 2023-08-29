@@ -34,11 +34,18 @@ class EcosystemModel:
         self.pool_ex_mets = []
         pool_ub = []
         pool_lb = []
-        for key in self._pooldict.keys():
+	cnt=0
+        for key in self._pooldict.keys(): #pooldict.keys() are met, so the diet dict must be based on met too.
             self.pool_ex_rxns.append("EX_{}:pool".format(key))
             self.pool_ex_mets.append("{}:pool".format(key))
-            pool_lb.append(-1000)
-            pool_ub.append(1000)
+            if self.diet != None and key in self.diet.keys():
+                pool_lb.append(self.diet[key][0])
+                pool_ub.append(self.diet[key][1])
+                cnt = cnt+1
+            else:
+                pool_lb.append(-1000)
+                pool_ub.append(1000) 
+        print('nb of bounds modified by diet : ',cnt)
         self.sysreactions = []
         self.sysmetabolites = []
         self.lb = []
@@ -74,7 +81,7 @@ class EcosystemModel:
                 rxn_idx = self.sysreactions.index(rxn_name)
                 self.Ssigma[met_idx, rxn_idx] = -coeff
 
-    def __init__( self, model_array=None, metabolic_dict=None ):
+    def __init__( self, model_array=None, metabolic_dict=None, diet=None ):
         """Instantiate the EcosystemModel object model_array is an array of cobra models to connect
         metabolic_dict is a dictionary such as:
             * Its keys correspond to tuples (metabolite_id,model)
@@ -84,6 +91,7 @@ class EcosystemModel:
         self.models = model_array
         self.models_ids = [getattr(m, 'id', 'model_{}'.format(model_array.index(m))) for m in model_array]
         self.metabolic_dict = metabolic_dict
+	self.diet = diet
         self._pooldict = None
         self.pool_ex_rxns = None
         self.pool_ex_mets = None
@@ -169,9 +177,9 @@ class EcosystemModel:
         return vlp
 
 
-def create_model( model_array=None, metabolic_dict=None ):
+def create_model( model_array=None, metabolic_dict=None, diet=None ):
     """Returns ans EcosystemModel from parameters"""
-    return EcosystemModel(model_array=model_array, metabolic_dict=metabolic_dict)
+    return EcosystemModel(model_array=model_array, metabolic_dict=metabolic_dict, diet=diet)
 
 
 def bensolve_default_options():
