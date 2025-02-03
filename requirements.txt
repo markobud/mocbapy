@@ -1,2 +1,3 @@
 # install benpy from repo
 git+https://github.com/markobud/benpy@development
+cobra
