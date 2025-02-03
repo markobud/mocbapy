@@ -1,0 +1,2 @@
+# install benpy from repo
+pip install git+https://github.com/markobud/benpy.git@development
