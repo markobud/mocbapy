@@ -1,8 +1,8 @@
 # mocbapy test file
-import cobra.test
+import cobra.io
 import mocbapy.utilities
 import mocbapy.analysis
-import mocbapy.draw
+#import mocbapy.draw
 import numpy as np
 import re
 from mocbapy.EcosystemModel import create_model, bensolve_default_options
@@ -10,7 +10,7 @@ from mocbapy.EcosystemModel import create_model, bensolve_default_options
 test_arr = list()
 n_test = 2
 for i in range(n_test):
-    model = cobra.test.create_test_model("ecoli")
+    model = cobra.io.load_model("textbook")
     model.id = model.id + '_' + str(i+1)
     test_arr.append(model)
 
@@ -33,8 +33,8 @@ max_vals = np.amax(ext_points,0)
 
 #test = mocbapy.draw.draw2d(sol_mofba)
 
-fig, ax = mocbapy.draw.draw2d(sol_mofba)
-fig.savefig('test2D.png')
+#fig, ax = mocbapy.draw.draw2d(sol_mofba)
+#fig.savefig('test2D.png')
 
 #fba_res = {obj: 0.5 for obj in test_EcoSys.objectives}
 fba_res = {'{}:{}'.format(v[0][0],k): 0.5 for k, v in test_EcoSys.objectives.items()}
