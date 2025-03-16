@@ -1,3 +1,5 @@
 # install benpy from repo
 benpy
 cobra
+build
+twine
