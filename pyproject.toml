@@ -1,10 +1,11 @@
 [build-system]
-requires = ["setuptools", "benpy"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mocbapy"
-version = "0.1"
+version = "0.2"
+dependencies = ["benpy"]
 authors = [
     {name = 'Marko Budinich', email = 'marko.budinich@gmail.com'},
     {name = 'Anna Lambert', email = 'anna.lambert@univ-nantes.fr'},
