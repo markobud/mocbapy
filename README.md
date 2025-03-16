@@ -8,4 +8,19 @@ For other problems, it should relay in optlang interfaces
 
 # Install
 
+# Using pip
+
+```sh
+pip install mocbapy
+```
+
+Or directly from github for a specific branch/commit
+
+```sh
+pip install git+https://github.com/markobud/mocbapy@development     
+```
+
+# Using cloned respository
+```sh
 pip install -e .
+```
