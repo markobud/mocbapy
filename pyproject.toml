@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mocbapy"
 version = "0.2"
-dependencies = ["benpy"]
+dependencies = ["benpy","tqdm"]
 authors = [
     {name = 'Marko Budinich', email = 'marko.budinich@gmail.com'},
     {name = 'Anna Lambert', email = 'anna.lambert@univ-nantes.fr'},
