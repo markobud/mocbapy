@@ -1,14 +1,10 @@
 # Multi Objective Constrait-Based Analysis in python (MOCBApy)
 
-The main objective of the project is to build a package to encapsule MO-FBA & MO-FBA from Budinich (2017). 
-
-It should be a package in pure pyton powered by benpy to solve the MOLP that stem from the metabolic model
-
-For other problems, it should relay in optlang interfaces
+This package encapsule both MO-FBA & MO-FBA [from Budinich (2017)](https://doi.org/10.1371/journal.pone.0171744). 
 
 # Install
 
-# Using pip
+## Using pip
 
 ```sh
 pip install mocbapy
@@ -20,7 +16,7 @@ Or directly from github for a specific branch/commit
 pip install git+https://github.com/markobud/mocbapy@development     
 ```
 
-# Using cloned respository
+## Using cloned respository
 ```sh
 pip install -e .
 ```
